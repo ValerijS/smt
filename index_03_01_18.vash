@@ -1,0 +1,288 @@
+@html.extend('layout', function(model){
+
+@html.block('js', function(model){
+<script type="text/javascript" src="/static/javascripts/pages/action.tcmorder.index.js"></script>
+<script type="text/javascript" src="/static/javascripts/export-excel.js"></script>
+})
+
+@html.block('content', function(model){
+@{
+var is_gp = model.request.user.isInRole('is_gp_user');
+}
+<ui-init object="gsp_id" ng-cloak>
+    @html.toJson(@context.request.user.gsp_id)
+</ui-init>
+<ui-init object="langs" ng-cloak>
+    @html.toJson(model.model.lang)
+</ui-init>
+<ui-init object="customers" ng-cloak>
+    @html.toJson(model.model.customers)
+</ui-init>
+<ui-init object="storehouses" ng-cloak>
+    @html.toJson(model.model.storehouses)
+</ui-init>
+<ui-init object="points_of_sale" ng-cloak>
+    @html.toJson(model.model.points_of_sale)
+</ui-init>
+
+<ui-init object="vendors" ng-cloak>
+    @html.toJson(model.model.vendors)
+</ui-init>
+<ui-command object="command">
+    <cmd code="refresh" url="" type="ng-command" ng-command="grid.refresh()"></cmd>
+    <cmd code="open" url="" type="ng-command" ng-command="command.refreshPos()"></cmd>
+    <cmd code="edit" url="" type="ng-command" ng-command="command.editRow(grid.selectedRow)">
+        <check rule="{{grid.selectedRow != undefined && grid.selectedRow != null}}" text="!lang:site.alerts.choose_row!"></check>
+    </cmd>
+    <cmd code="remove" url="" type="ng-command" ng-command="command.removeRow(grid.selectedRow)" confirm="!lang:site.alerts.delete!">
+        <check rule="{{grid.selectedRow != undefined && grid.selectedRow != null}}" text="!lang:site.alerts.choose_row!"></check>
+    </cmd>
+    <cmd code="enter_rec" url="" type="ng-command" ng-command="command.enterReceipt(grid.selectedRow)">
+        <check rule="{{grid.selectedRow != undefined && grid.selectedRow != null}}" text="!lang:site.alerts.choose_row!"></check>
+    </cmd>
+    <cmd code="enter_trf" url="" type="ng-command" ng-command="command.enterTransfer(grid.selectedRow)">
+        <check rule="{{grid.selectedRow != undefined && grid.selectedRow != null}}" text="!lang:site.alerts.choose_row!"></check>
+    </cmd>
+    <cmd code="create_min_limits_docs" url="" type="ng-command" ng-command="command.create_limits_docs(0)"></cmd>
+    <cmd code="create_rec_limits_docs" url="" type="ng-command" ng-command="command.create_limits_docs(1)"></cmd>
+
+</ui-command>
+<div ng-controller="MainCtrl"></div>
+<ui-init object="states">
+    @html.toJson([
+    {key: 0, value: 'новая'},
+    {key: 1, value: 'отправлена поставщику'},
+    {key: 2, value: 'подтверждена поставщиком'},
+    {key: 3, value: 'получен товар(выполнена)'},
+    {key: 4, value: 'отменена'}
+    ])
+</ui-init>
+<div ng-init="lang=getDefaultLang();slang={lang_code:lang.lang_code}"></div>
+<div class="form-inline" ng-init='search.num="";'>
+    <div class="form-group">
+        <label>!lang:site.forms.start_date!</label>
+        <input type="text" class="form-control" placeholder="!lang:site.forms.start_date!" ng-model="search.start_date" ui-date/>
+    </div>
+    <div class="form-group">
+        <label>!lang:site.forms.end_date!</label>
+        <input type="text" class="form-control" placeholder="!lang:site.forms.end_date!" ng-model="search.end_date" ui-date/>
+    </div>
+    <div class="form-group">
+      <label>&nbsp;</label><br>
+      <div class="btn-group" role="group" label="...">
+        <button class="btn btn-primary" ng-click="grid.refresh()"><span class="glyphicon glyphicon-search" aria-hidden="true"></span>&nbsp;!lang:site.buttons.search!</button>
+        <a class="btn btn-primary" data-toggle="collapse" href="#show_add_search" aria-expanded="false" aria-controls="show_add_search">
+		&nbsp;<span class="glyphicon glyphicon-chevron-down" aria-hidden="true"></span>
+	</a>
+      </div>
+    </div>
+    <div class="form-group pull-right">
+        <label>&nbsp;</label><br>
+        <div class="form-group">
+
+        <button class="btn btn-success" ng-click="add()">!lang:site.buttons.create!</button>
+        <button class="btn btn-info" ng-click="command.edit()">!lang:site.buttons.edit!</button>
+        @if(is_gp) {
+        <button class="btn btn-danger" ng-click="command.remove()">!lang:site.buttons.delete!</button>
+        } else {
+        <button ng-disabled="grid.selectedRow.rqs_state==2||grid.selectedRow.rqs_state==3" class="btn btn-danger" ng-click="command.remove()">!lang:site.buttons.delete!</button>
+        }
+
+
+        <div class="btn-group">
+            <button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    !lang:site.buttons.enteronbase! <span class="caret"></span>
+            </button>
+
+            <ul class="dropdown-menu">
+                <li><a ng-click="command.enter_rec()">!lang:site.pages.goods_receipt!</a></li>
+                <li><a ng-click="command.enter_trf()">!lang:site.pages.goods_transfer!</a></li>
+            </ul>
+    	</div>
+
+        <div class="btn-group" role="group">
+
+                                   <div class="dropdown">
+                                    <button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown" id="dropdownMenu2" aria-haspopup="true" aria-expanded="false">
+                                        &nbsp;<span class="glyphicon glyphicon-cog" aria-hidden="true">&nbsp;</span><span class="caret"></span>
+                                    </button>
+                                    <ul class="dropdown-menu pull-right">
+                                        <li><a ng-click="command.create_min_limits_docs()"> !lang:site.forms.fill_on_min_limits!</a></li>
+                                        <li><a ng-click="command.create_rec_limits_docs()"> !lang:site.forms.fill_on_recom_limits!</a></li>
+                                    </ul>
+			    	</div>
+
+    	</div>
+
+
+        </div>
+    </div>
+
+</div>
+<div class="collapse form-inline" id='show_add_search'>
+    <div class="form-group">
+        <label>!lang:site.forms.storehouse!</label><br>
+                            <select class="form-control" id="storehouse" ui-select="{allowClear: true}"  placeholder="!lang:site.forms.storehouse!" ng-model="search.sth_id"  style="width: 200px;">
+                                <option></option>
+                                <option ng-repeat="p in storehouses" value="{{p.sth_id}}">{{p.sth_name}}</option>
+                            </select>
+    </div>
+</div>
+
+<div style="clear:both"></div>
+<ui-grid object="grid" get-url="@html.getUrl(context,null,'tcmorders','find')" get-param="search" row-db-click="command.edit()" row-click="command.open()" sort-column="rqs_create" sort-order="desc">
+    <column name="rqs_id" title="!lang:site.grids.request_id!" class="col-lg-1"></column>
+    <column name="rqs_create" title="!lang:site.grids.create_date!" class="col-lg-2">{{row.rqs_create | momentDateTime}}</column>
+    <column name="vnd_name" title="!lang:site.forms.supplier!" class="col-lg-2"></column>
+    <column name="sth_name" title="!lang:site.grids.pos_name!" class="col-lg-2"></column>
+    <column name="pos_name" title="!lang:site.grids.pos!" class="col-lg-2"></column>
+    <column name="rqs_comment" title="!lang:site.grids.comment!" class="col-lg-3"></column>
+    <column name="rqs_approved" title="!lang:site.forms.rqv_approved!" class="col-lg-1">
+        <i class="glyphicon glyphicon-ok" ng-show="row.rqs_approved" title="!lang:site.forms.rqs_approved!"></i>
+    </column>
+    <column name="user_fio" title="!lang:site.grids.user_create!" class="col-lg-1"></column>
+<!--    @if(is_gp) {
+    <column name="rqs_state" title="!lang:site.grids.state!" class="col-lg-2">
+        <span ng-show="row.rqs_state>1">{{$parent.$parent.states[row.rqs_state].value}}</span>
+        <button ng-show="row.rqs_state==1" type="button" class="btn btn-primary" ng-click="$parent.$parent.accept(row);$event.stopPropagation()" style="display: block">!lang:site.grids.accept_by_supplier!</button>
+    </column>
+    } else {
+    <column name="rqs_state" title="!lang:site.grids.state!" class="col-lg-2">
+        <span ng-show="(row.rqs_state && row.gsp_id) || (row.rqs_state==0 && row.gsp_id==null)">{{$parent.$parent.states[row.rqs_state].value}}</span>
+        <button ng-show="(row.rqs_state==0 && row.gsp_id)" type="button" class="btn btn-primary" ng-click="$parent.$parent.send(row);$event.stopPropagation()" style="display: block">!lang:site.grids.send_to_supplier!</button>
+    </column>
+    }        -->
+    <column name="rqs_delivery_date" title="!lang:site.grids.delivery_date!" class="col-lg-1">{{row.rqs_delivery_date | momentDate}}</column>
+    <ext-row>
+        <span>{{row.data|json}}</span>
+        <span>{{row.data.length}}</span>
+        <div ng-bind-html-unsafe="row.html"></div>
+    </ext-row>
+</ui-grid>
+<div ng-controller="FormCtrl" ng-init="service.getPosUrl = '@html.getUrl(context,null,'tcmorders','findPos')'"></div>
+<script type="text/template" id="tmpl-pos">
+    <table class='grid table table-striped'>
+        <thead>
+        <tr>
+            <th>!lang:site.grids.name!</th>
+            <th>!lang:site.grids.count!</th>
+            <th>!lang:site.grids.comment!</th>
+        </tr>
+        </thead>
+        <tbody>!0!</tbody>
+    </table>
+</script>
+<div class="modal fade" id="add-form" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" ng-controller="EditFormCtrl">
+    <div class="modal-dialog" style="width: 60%;max-height: 60%;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h4 class="modal-title">!lang:site.forms_title.edit_tmcorder!</h4>
+            </div>
+            <div class="modal-body">
+                <form class="form-horizontal" role="form">
+                    <div class="form-group">
+                        @if(is_gp) {
+                        <label class="col-xs-2 control-label">!lang:site.forms.customer!</label>
+                        <div class="col-xs-5" style="top:3px;">
+                            <select ng-disabled="grid.data.rows.length || row.rqs_state>1" class="form-control" ui-select2  placeholder="!lang:site.forms.customer!" ng-model="row.com_id" style="width: 100%;">
+                                <option></option>
+                                <option ng-repeat="s in $parent.customers" value="{{s.com_id}}" >{{s.com_name}}</option>
+                            </select>
+                        </div>
+                        } else {
+                        <label class="col-xs-2 control-label">!lang:site.forms.supplier!</label>
+                        <div class="col-xs-5" style="top:3px;">
+                            <select ng-disabled="row.rqs_state>1" class="form-control" id="vnd_name"  ui-select2  placeholder="!lang:site.forms.supplier!" ng-model="row.vnd_id" style="width: 100%;">
+                                <option></option>
+                                <option ng-repeat="s in $parent.vendors" value="{{s.vnd_id}}" >{{s.vnd_name}}</option>
+                            </select>
+                        </div>
+                        }
+                        <label for="rqs_delivery_date" class="col-xs-3 control-label">!lang:site.forms.delivery_date!</label>
+                        <div class="col-xs-2">
+                            <input ng-disabled="row.rqs_state>1" id="rqs_delivery_date" type="text" class="form-control" placeholder="!lang:site.forms.delivery_date!" ng-model="row.rqs_delivery_date" ui-date/>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-xs-2 control-label">!lang:site.grids.pos!</label>
+                        <div class="col-xs-4" style="top:3px;">
+                            <select ng-disabled="row.rqs_state>1" class="form-control" id="pos" ui-select2  placeholder="!lang:site.grids.pos!" ng-model="row.pos_id" style="width: 100%;">
+                                <option></option>
+                                <option ng-repeat="p in points_of_sale" value="{{p.pos_id}}">{{p.pos_name}}</option>
+                            </select>
+                        </div>
+
+                        <label class="col-xs-2 control-label">!lang:site.forms.storehouse!</label>
+                        <div class="col-xs-4" style="top:3px;">
+                            <select ng-disabled="row.rqs_state>1" class="form-control" id="storehouse" ui-select2  placeholder="!lang:site.forms.storehouse!" ng-model="row.sth_id" style="width: 100%;">
+                                <option></option>
+                                <option ng-repeat="p in storehouses" value="{{p.sth_id}}">{{p.sth_name}}</option>
+                            </select>
+                        </div>
+
+                    </div>
+                    <div class="form-group">
+                        <label for="rqs_supplier_comment" class="col-xs-2 control-label" style="top: -9px;">!lang:site.forms.supplier_comment!</label>
+                        <div class="col-xs-4">
+                            <input ng-disabled="row.rqs_state>1 || !$parent.gsp_id" type="text" class="form-control" id="rqs_supplier_comment" placeholder="!lang:site.forms.supplier_comment!" ng-model="row.rqs_supplier_comment">
+                        </div>
+                        <label for="rqs_comment" class="col-xs-1 control-label"></label>
+                        <div class="col-xs-4">
+                            <div class="checkbox pretty-checkable">
+                                <label>
+                                    <input type="checkbox"  data-label="!lang:site.forms.rqv_approved!" ui-pretty-checkable ng-model="row.rqs_approved"/>
+                                </label>
+                            </div>
+                        </div>
+
+                    </div>
+                    <div class="form-group">
+                        <label for="rqs_comment" class="col-xs-2 control-label" style="top: -9px;">!lang:site.forms.comment!</label>
+                        <div class="col-xs-10">
+                            <input ng-disabled="row.rqs_state>1 || $parent.gsp_id" type="text" class="form-control" id="rqs_comment" placeholder="!lang:site.forms.comment!" ng-model="row.rqs_comment">
+                        </div>
+
+                    </div>
+
+                    <div style="height: 40%;">
+                        <form-grid object="grid" idname="rqsi_id" ng-disabled="row.rqs_state>1" style="height:100%;"  fixedHeader="true">
+                            <form-grid-column title="!lang:site.grids.product!" name="gi_name" type="select2" width="50%" type-options="get_data:load_goods,id_name:gi_id" style="width:50%;"></form-grid-column>
+                            <form-grid-column title="!lang:site.grids.count!" name="rqsi_count" type="number" width="10%" ></form-grid-column>
+                            <form-grid-column title="!lang:site.grids.comment!" name="rqsi_comment" type="text"></form-grid-column>
+                        </form-grid>
+                    </div>
+                    <div style="margin-top:50px;margin-left:15px;">
+                        @if(is_gp) {
+                            <button type="button" ng-disabled="!row.com_id || row.rqs_state>1" class="btn btn-primary" ng-click="add()">!lang:site.forms.addrow!</button>
+                        } else {
+                            <div class="form-group">
+                                <button type="button" ng-disabled="row.rqs_state>1" class="btn btn-primary" ng-click="add()">!lang:site.forms.addrow!</button>
+                                <div class="btn-group">
+                                    <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                        <span class="glyphicon glyphicon-floppy-disk" aria-hidden="true"></span> Excel <span class="caret"></span>
+                                    </button>
+
+                                    <ul class="dropdown-menu">
+                                        <li><a ng-click="excelExport()"> !lang:site.forms.foodstuff!</a></li>
+                                        <li><a ng-click="excelExportOld()"> !lang:site.grids.goods!</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">!lang:site.buttons.cancel!</button>
+                <button ng-disabled="row.rqs_state>1" type="button" class="btn btn-primary" ng-click="save()">!lang:site.buttons.save!</button>
+ 				<button ng-disabled="row.buttonClicked||row.doc_state>1||row.edit_denied" type="button" class="btn btn-primary" ng-click="printDiv('tcmorders', 'rqs_id', [1,5,2,4,11,6], [], false)">!lang:site.buttons.print_doc!</button>
+				
+            </div>
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+    <iframe id="txtArea1" style="display:none"></iframe>
+})
+
+})
